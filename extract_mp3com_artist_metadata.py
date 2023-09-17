@@ -7,7 +7,7 @@ pattern_genre = re.compile(r"^More featured tracks in .*");
 pattern_location = re.compile(r"^Find more artists in .*");
 
 def extract_metadata(url, genre_filter=""):
-    response = requests.get(url); # Sendl a GET request to the URL
+    response = requests.get(url); # Send a GET request to the URL
     
     # Check if the request was successful
     if response.status_code != 200:
@@ -33,7 +33,6 @@ def extract_metadata(url, genre_filter=""):
     name = ' '.join(name_td.stripped_strings) if name_td else None; # Extract the artist's name, ignoring all other info stored within the <td> tag
     location = location_td.string[21:len(location_td.string)] if location_td else None; # Extract the artist's location
     genre = genre_td.string[24:len(genre_td.string)] if genre_td else None; # Extract the genre
-    artist_url = url;
     
     genre_strings_length = len(genre_strings);
     
@@ -44,7 +43,7 @@ def extract_metadata(url, genre_filter=""):
        (genre_filter.lower() in genre_strings[2].lower() if genre_strings_length > 2 else False)):
         
         # Separate the city and the country of the artist into two different variables
-        parts = location.split(" - ");
+        parts = location.split(" - ") if location else "";
         
         if len(parts) == 2: # Normally, parts should have two elements
             city = parts[0].strip();
@@ -53,12 +52,14 @@ def extract_metadata(url, genre_filter=""):
             if city[-1] == ",":
                 city = city[:-1];
         else: # However, some locations such as "Canada - Israel - Sweden" are different
-            city, country = "N/A", location;    
+            city, country = "N/A", location;
+            
+        if genre_strings_length == 0:
+            genre_strings = ["N/A"];
 
-        return [name, country, city, genre, genre_strings, artist_url];
+        return [name, country, city, genre, genre_strings, url];
     
 def data_to_xlsx():
-    start = time.time();
     # Create an Excel workbook, and within it, a worksheet.
     workbook = xlsxwriter.Workbook("artists.xlsx");
     worksheet = workbook.add_worksheet();
@@ -72,12 +73,15 @@ def data_to_xlsx():
     print(str(len(urls)) + " URLs successfully extracted and parsed!");
     print("Parsing and saving metadata to xlsx...");
     
+    start = time.time();
+    
     for artist in urls:
         metadata = extract_metadata(artist, genre);
-        track_qty = len(metadata[4]);
         row = str(i);
         
         if metadata:
+            track_qty = len(metadata[4]);
+            
             worksheet.write("A" + row, metadata[0].strip()); # Write the name
             worksheet.write("B" + row, metadata[1].strip()); # Write the country
             worksheet.write("C" + row, metadata[2].strip()); # Write the city
