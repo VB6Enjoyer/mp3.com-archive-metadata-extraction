@@ -101,8 +101,6 @@ def data_to_xlsx():
             
             print("Artist '" + metadata[0].strip() + "' parsed and saved.", progress + "/" + url_amount);
             i += 1;
-            if i == 21:
-                break;
         j += 1;
 
     end = time.time();
