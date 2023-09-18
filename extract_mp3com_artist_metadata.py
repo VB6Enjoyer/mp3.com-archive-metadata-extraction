@@ -7,6 +7,10 @@ pattern_genre = re.compile(r"^More featured tracks in .*");
 pattern_location = re.compile(r"^Find more artists in .*");
 
 def extract_metadata(url, genre_filter=""):
+    # Separate multiple genres if inputted
+    if genre_filter != "":
+        genre_filter = genre_filter.split(",");
+    
     response = requests.get(url); # Send a GET request to the URL
     
     # Check if the request was successful
@@ -32,16 +36,15 @@ def extract_metadata(url, genre_filter=""):
             
     name = ' '.join(name_td.stripped_strings) if name_td else None; # Extract the artist's name, ignoring all other info stored within the <td> tag
     location = location_td.string[21:len(location_td.string)] if location_td else None; # Extract the artist's location
-    genre = genre_td.string[24:len(genre_td.string)] if genre_td else None; # Extract the genre
+    genre = genre_td.string[24:len(genre_td.string)] if genre_td else None; # Extract the artist's main genre
     
-    genre_strings_length = len(genre_strings);
+    genre_strings_set = set(genre_strings); # Turn the list into a set
+    genre_strings_set.add(genre); # Appends the main genre to the genre set to check for matching genres
     
-    # Only save artists that are within the desired genre
-    if((genre_filter.lower() in genre.lower()) or
-       (genre_filter.lower() in genre_strings[0].lower() if genre_strings_length > 0 else False) or 
-       (genre_filter.lower() in genre_strings[1].lower() if genre_strings_length > 1 else False) or
-       (genre_filter.lower() in genre_strings[2].lower() if genre_strings_length > 2 else False)):
-        
+    # Find whether the artist has any genres that match with the inputted filters
+    matching_genres = [filtered_genre.lower() for filtered_genre in genre_strings_set if any(filtered_genre.lower() in genre.lower() for genre in genre_filter)];
+
+    if matching_genres or genre_filter == "":
         # Separate the city and the country of the artist into two different variables
         parts = location.split(" - ") if location else "";
         
@@ -54,7 +57,7 @@ def extract_metadata(url, genre_filter=""):
         else: # However, some locations such as "Canada - Israel - Sweden" are different
             city, country = "N/A", location;
             
-        if genre_strings_length == 0:
+        if len(genre_strings) == 0:
             genre_strings = ["N/A"];
 
         return [name, country, city, genre, genre_strings, url];
@@ -66,8 +69,8 @@ def data_to_xlsx():
     i = 1;
     
     url = input("Input the URL: ");
-    genre = input("Input a genre (leave blank to parse artists of all genres): ");
-    
+    genre = input("Input any number of genres separated by commas (leave blank to parse artists of all genres): ").lower().strip();
+
     print("Extracting URLs...");
     urls = extract_urls(url, True);
     print(str(len(urls)) + " URLs successfully extracted and parsed!");
@@ -93,7 +96,7 @@ def data_to_xlsx():
             
             print("Artist '" + metadata[0].strip() + "' parsed and saved.");
             i += 1;
-            
+
     end = time.time();
     print("Created a file with", i-1, "entries in", str(round(end - start)) + " seconds.");
     workbook.close();
