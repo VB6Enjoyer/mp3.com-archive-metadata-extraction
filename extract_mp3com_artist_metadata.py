@@ -55,7 +55,8 @@ def extract_metadata(url, genre_filter=""):
             if city[-1] == ",":
                 city = city[:-1];
         else: # However, some locations such as "Canada - Israel - Sweden" are different
-            city, country = "N/A", location;
+            city = "N/A";
+            country = location if location else "N/A";
             
         if len(genre_strings) == 0:
             genre_strings = ["N/A"];
@@ -67,6 +68,7 @@ def data_to_xlsx():
     workbook = xlsxwriter.Workbook("artists.xlsx");
     worksheet = workbook.add_worksheet();
     i = 1;
+    j = 1;
     
     url = input("Input the URL: ");
     genre = input("Input any number of genres separated by commas (leave blank to parse artists of all genres): ").lower().strip();
@@ -77,10 +79,13 @@ def data_to_xlsx():
     print("Parsing and saving metadata to xlsx...");
     
     start = time.time();
+    url_amount = str(len(urls));
     
     for artist in urls:
         metadata = extract_metadata(artist, genre);
         row = str(i);
+        progress = str(j);
+        
         
         if metadata:
             track_qty = len(metadata[4]);
@@ -94,8 +99,11 @@ def data_to_xlsx():
             worksheet.write("G" + row, metadata[4][2].strip()) if track_qty > 2 else "N/A"; # Write thes third track's genre
             worksheet.write("H" + row, metadata[5].strip()); # Write the URL
             
-            print("Artist '" + metadata[0].strip() + "' parsed and saved.");
+            print("Artist '" + metadata[0].strip() + "' parsed and saved.", progress + "/" + url_amount);
             i += 1;
+            if i == 21:
+                break;
+        j += 1;
 
     end = time.time();
     print("Created a file with", i-1, "entries in", str(round(end - start)) + " seconds.");
