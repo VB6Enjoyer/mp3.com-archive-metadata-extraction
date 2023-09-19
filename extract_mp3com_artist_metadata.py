@@ -19,30 +19,34 @@ def extract_metadata(url, genre_filter=""):
         return None;
     
     soup = BeautifulSoup(response.content, 'html.parser'); # Parse the HTML content using BeautifulSoup
-
-    name_td = soup.find('td', class_='ttlbarttl');  # Find the artist's name
-    location_td = soup.find('a', string=pattern_location); # Find the artist's location
-    genre_td = soup.find('a', string=pattern_genre); # Find the artist's main genre
-    trackgenres_td = soup.find_all('td', class_='small'); # Find the genre for each track
     
-    genre_strings = [];
-    
-    # Obtain the genre for each track and put it in a list
-    for td in trackgenres_td:
-        a_tags = td.find_all('a');
+    try:
+        name_td = soup.find('td', class_='ttlbarttl');  # Find the artist's name
+        location_td = soup.find('a', string=pattern_location); # Find the artist's location
+        genre_td = soup.find('a', string=pattern_genre); # Find the artist's main genre
+        trackgenres_td = soup.find_all('td', class_='small'); # Find the genre for each track
         
-        for a_tag in a_tags:
-            genre_strings.append(a_tag.string);
+        genre_strings = [];
+        
+        # Obtain the genre for each track and put it in a list
+        for td in trackgenres_td:
+            a_tags = td.find_all('a');
             
-    name = ' '.join(name_td.stripped_strings) if name_td else None; # Extract the artist's name, ignoring all other info stored within the <td> tag
-    location = location_td.string[21:len(location_td.string)] if location_td else None; # Extract the artist's location
-    genre = genre_td.string[24:len(genre_td.string)] if genre_td else None; # Extract the artist's main genre
-    
-    genre_strings_set = set(genre_strings); # Turn the list into a set
-    genre_strings_set.add(genre); # Appends the main genre to the genre set to check for matching genres
-    
-    # Find whether the artist has any genres that match with the inputted filters
-    matching_genres = [filtered_genre.lower() for filtered_genre in genre_strings_set if any(filtered_genre.lower() in genre.lower() for genre in genre_filter)];
+            for a_tag in a_tags:
+                genre_strings.append(a_tag.string);
+                
+        name = ' '.join(name_td.stripped_strings) if name_td else None; # Extract the artist's name, ignoring all other info stored within the <td> tag
+        location = location_td.string[21:len(location_td.string)] if location_td else None; # Extract the artist's location
+        genre = genre_td.string[24:len(genre_td.string)] if genre_td else None; # Extract the artist's main genre
+        
+        genre_strings_set = set(genre_strings); # Turn the list into a set
+        genre_strings_set.add(genre); # Appends the main genre to the genre set to check for matching genres
+        
+        # Find whether the artist has any genres that match with the inputted filters
+        matching_genres = [filtered_genre.lower() for filtered_genre in genre_strings_set if any(filtered_genre.lower() in genre.lower() for genre in genre_filter)];
+    except:
+        print("PARSING ERROR ON ARTIST '" + name + "'.");
+        matching_genres = None;
 
     if matching_genres or genre_filter == "":
         # Separate the city and the country of the artist into two different variables
@@ -86,7 +90,6 @@ def data_to_xlsx():
         row = str(i);
         progress = str(j);
         
-        
         if metadata:
             track_qty = len(metadata[4]);
             
@@ -101,6 +104,7 @@ def data_to_xlsx():
             
             print("Artist '" + metadata[0].strip() + "' parsed and saved.", progress + "/" + url_amount);
             i += 1;
+
         j += 1;
 
     end = time.time();
