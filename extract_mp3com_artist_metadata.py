@@ -16,6 +16,8 @@ def extract_metadata(url, genre_filter=""):
     # Check if the request was successful
     if response.status_code != 200:
         print(f"Failed to fetch URL: {url}");
+        if response.status_code == 429:
+            print(f"You are being rate limited. Please try again later");
         return None;
     
     soup = BeautifulSoup(response.content, 'html.parser'); # Parse the HTML content using BeautifulSoup
@@ -45,7 +47,10 @@ def extract_metadata(url, genre_filter=""):
         # Find whether the artist has any genres that match with the inputted filters
         matching_genres = [filtered_genre.lower() for filtered_genre in genre_strings_set if any(filtered_genre.lower() in genre.lower() for genre in genre_filter)];
     except:
-        print("PARSING ERROR ON ARTIST '" + name + "'.");
+        if not name:
+            print("PARSING ERROR: ARTIST IS NOT AVAILABLE.");
+        else:
+            print("PARSING ERROR ON ARTIST '" + name + "'.");
         matching_genres = None;
 
     if matching_genres or genre_filter == "":
